@@ -6,8 +6,8 @@
 define oradb::opatchupgrade(
   String $oracle_home               = undef,
   String $patch_file                = undef,
-  $csi_number                       = undef,
-  $support_id                       = undef,
+  Optional[Integer] $csi_number     = undef,
+  Optional[String] $support_id      = undef,
   String $opversion                 = undef,
   String $user                      = lookup('oradb::user'),
   String $group                     = lookup('oradb::group'),
@@ -18,7 +18,7 @@ define oradb::opatchupgrade(
   $patchDir = "${oracle_home}/OPatch"
 
   $supported_db_kernels = join( lookup('oradb::kernels'), '|')
-  if ( $::kernel in $supported_db_kernels == false){
+  if ( $facts['kernel'] in $supported_db_kernels == false){
     fail("Unrecognized operating system, please use it on a ${supported_db_kernels} host")
   }
 
@@ -45,7 +45,7 @@ define oradb::opatchupgrade(
       }
     }
 
-    case $::kernel {
+    case $facts['kernel'] {
       'Linux', 'SunOS': {
         file { $patchDir:
           ensure  => absent,
@@ -81,7 +81,7 @@ define oradb::opatchupgrade(
 
           file { "${download_dir}/opatch_upgrade_${title}_${opversion}.ksh":
             ensure  => present,
-            content => template('oradb/ocm.rsp.erb'),
+            content => epp('oradb/ocm.rsp.epp', { 'patchDir' => $patchDir }),
             mode    => '0775',
             owner   => $user,
             group   => $group,

@@ -14,10 +14,14 @@ class oradb::prepareautostart(
     ensure  => present,
     mode    => '0755',
     owner   => 'root',
-    content => regsubst(template("oradb/dbora_${::kernel}.erb"), '\r\n', "\n", 'EMG'),
+    content => regsubst(epp("oradb/dbora_${facts['kernel']}.epp",
+                            { 'oracle_home'  => $oracle_home,
+                              'user'         => $user,
+                              'service_name' => $service_name } ),
+                        '\r\n', "\n", 'EMG'),
   }
 
-  case $::operatingsystem {
+  case $facts['operatingsystem'] {
     'CentOS', 'RedHat', 'OracleLinux', 'SLES': {
       exec { "enable service ${service_name}":
         command   => "chkconfig --add ${service_name}",
@@ -43,7 +47,9 @@ class oradb::prepareautostart(
         ensure  => present,
         mode    => '0755',
         owner   => 'root',
-        content => template('oradb/oradb_smf.xml.erb'),
+        content => epp('oradb/oradb_smf.xml.epp',
+                      { 'dboraLocation'=> $dboraLocation,
+                        'service_name' => $service_name } ),
       }
       exec { "enable service ${service_name}":
         command   => 'svccfg -v import /tmp/oradb_smf.xml',

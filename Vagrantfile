@@ -20,7 +20,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     emdb.vm.hostname = "emdb.example.com"
     emdb.vm.synced_folder ".", "/vagrant", :mount_options => ["dmode=777","fmode=777"]
-    emdb.vm.synced_folder "/Users/edwin/software", "/software"
+    emdb.vm.synced_folder "/Users/edwinbiemond/software", "/software"
 
     emdb.vm.network :private_network, ip: "10.10.10.15"
 
@@ -72,7 +72,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     emapp.vm.hostname = "emapp.example.com"
     emapp.vm.synced_folder ".", "/vagrant", :mount_options => ["dmode=777","fmode=777"]
-    emapp.vm.synced_folder "/Users/edwin/software", "/software"
+    emapp.vm.synced_folder "/Users/edwinbiemond/software", "/software"
 
     emapp.vm.network :private_network, ip: "10.10.10.25"
 

@@ -226,6 +226,21 @@ class oradb_init {
 
 class oradb_em_agent {
 
+    oradb::rcu{'DEV_PS6':
+      rcu_file       => 'ofm_rcu_linux_11.1.1.7.0_64_disk1_1of1.zip',
+      product        => 'soasuite',
+      version        => '11.1.1.7',
+      oracle_home    => lookup('oracle_home_dir'),
+      action         => 'create',
+      db_server      => 'emdb.example.com:1521',
+      db_service     => 'emrepos.example.com',
+      sys_password   => 'Welcome01',
+      schema_prefix  => 'DEV',
+      repos_password => 'Welcome02',
+      puppet_download_mnt_point => lookup('oracle_source'),
+    }
+
+
   oradb::installem_agent{ 'em12105_agent':
     version                     => '12.1.0.5',
     source                      => 'https://10.10.10.25:7799/em/install/getAgentImage',
@@ -241,6 +256,7 @@ class oradb_em_agent {
     oms_host                    => '10.10.10.25',
     oms_port                    => 7799,
     em_upload_port              => 4889,
+    oracle_hostname             => 'emdb.example.com',
     user                        => 'oracle',
     group                       => 'dba',
     download_dir                => '/var/tmp/install',

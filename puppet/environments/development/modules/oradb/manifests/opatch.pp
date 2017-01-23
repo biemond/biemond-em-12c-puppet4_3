@@ -10,8 +10,8 @@ define oradb::opatch(
   String $patch_file                = undef,
   Boolean $clusterware              = false, # opatch auto or opatch apply
   Boolean $use_opatchauto_utility   = false,
-  $bundle_sub_patch_id              = undef,
-  $bundle_sub_folder                = undef,
+  Optional[String] $bundle_sub_patch_id = undef,
+  Optional[String] $bundle_sub_folder   = undef,
   String $user                      = lookup('oradb::user'),
   String $group                     = lookup('oradb::group'),
   String $download_dir              = lookup('oradb::download_dir'),
@@ -30,15 +30,13 @@ define oradb::opatch(
         file { "${download_dir}/${patch_file}":
           ensure => present,
           source => "${puppet_download_mnt_point}/${patch_file}",
-          mode   => '0775',
-          owner  => $user,
-          group  => $group,
+          mode   => '0775'
         }
       }
     }
   }
 
-  case $::kernel {
+  case $facts['kernel'] {
     'Linux', 'SunOS': {
       if $ensure == 'present' {
         if $remote_file == true {
@@ -47,14 +45,12 @@ define oradb::opatch(
             require   => File["${download_dir}/${patch_file}"],
             creates   => "${download_dir}/${patch_id}",
             path      => $execPath,
-            user      => $user,
-            group     => $group,
             logoutput => false,
             before    => Db_opatch["${patch_id} ${title}"],
           }
         } else {
           exec { "extract opatch ${patch_file} ${title}":
-            command   => "unzip -n ${mountPoint}/${patch_file} -d ${download_dir}",
+            command   => "unzip -n ${puppet_download_mnt_point}/${patch_file} -d ${download_dir}",
             creates   => "${download_dir}/${patch_id}",
             path      => $execPath,
             user      => $user,

@@ -5,7 +5,7 @@ define oradb::rcu(
   String $rcu_file                  = undef,
   Enum["soasuite", "webcenter", "oam", "oim", "all"] $product = 'soasuite',
   String $version                   = '11.1.1.7',
-  $oracle_home                      = undef,
+  Optional[String] $oracle_home     = undef,
   String $user                      = lookup('oradb::user'),
   String $group                     = lookup('oradb::group'),
   String $download_dir              = lookup('oradb::download_dir'),
@@ -16,7 +16,7 @@ define oradb::rcu(
   String $sys_password              = undef,
   String $schema_prefix             = undef,
   String $repos_password            = undef,
-  $temp_tablespace                  = undef,
+  Optional[String] $temp_tablespace = undef,
   String $puppet_download_mnt_point = lookup('oradb::module_mountpoint'),
   Boolean $remote_file              = true,
   Boolean $logoutput                = false,
@@ -56,20 +56,21 @@ define oradb::rcu(
 
   if ! defined(Exec["extract ${rcu_file}"]) {
     exec { "extract ${rcu_file}":
-      command   => "unzip ${source}/${rcu_file} -d ${download_dir}/rcu_${version}",
+      command   => "unzip -o ${source}/${rcu_file} -d ${download_dir}/rcu_${version}",
       creates   => "${download_dir}/rcu_${version}/rcuHome",
       path      => $execPath,
       user      => $user,
       group     => $group,
-      logoutput => false,
+      logoutput => true,
     }
   }
 
-  if ! defined(File["${download_dir}/rcu_${version}/rcuHome/rcu/log"]) {
+  # rcuHome is read only for non-root user so put log dir above it
+  if ! defined(File["${download_dir}/rcu_${version}/log"]) {
     # check rcu log folder
-    file { "${download_dir}/rcu_${version}/rcuHome/rcu/log":
+    file { "${download_dir}/rcu_${version}/log":
       ensure  => directory,
-      path    => "${download_dir}/rcu_${version}/rcuHome/rcu/log",
+      path    => "${download_dir}/rcu_${version}/log",
       recurse => false,
       replace => false,
       require => Exec["extract ${rcu_file}"],
@@ -103,16 +104,18 @@ define oradb::rcu(
   file { "${download_dir}/rcu_${version}/rcu_passwords_${title}.txt":
     ensure  => present,
     require => Exec["extract ${rcu_file}"],
-    content => template('oradb/rcu_passwords.txt.erb'),
+    content => epp('oradb/rcu_passwords.txt.epp',
+                   { 'sys_password' => $sys_password, 
+                     'componentsPasswords' => $componentsPasswords } ),
     mode    => '0775',
     owner   => $user,
     group   => $group,
   }
 
   if ( $oracle_home != undef ) {
-    $preCommand    = "export SQLPLUS_HOME=${oracle_home};${download_dir}/rcu_${version}/rcuHome/bin/rcu -silent"
+    $preCommand    = "export SQLPLUS_HOME=${oracle_home};export RCU_LOG_LOCATION=${download_dir}/rcu_${version}/log;${download_dir}/rcu_${version}/rcuHome/bin/rcu -silent"
   } else {
-    $preCommand    = "${download_dir}/rcu_${version}/rcuHome/bin/rcu -silent"
+    $preCommand    = "export RCU_LOG_LOCATION=${download_dir}/rcu_${version}/log;${download_dir}/rcu_${version}/rcuHome/bin/rcu -silent"
   }
   $postCommand     = "-databaseType ORACLE -connectString ${db_server}:${db_service} -dbUser ${sys_user} -dbRole SYSDBA -schemaPrefix ${schema_prefix} ${components} "
   $passwordCommand = " -f < ${download_dir}/rcu_${version}/rcu_passwords_${title}.txt"
